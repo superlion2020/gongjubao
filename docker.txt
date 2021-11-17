@@ -1,0 +1,163 @@
+docker run -it -v /d/dockerfiles/centosa1:/root/build -h a1 --name a1 centos /bin/bash
+docker run -it  -p 18093:8080  -v /d/dockerfiles/centosa3:/root/build -h a3 --name a3 centos /bin/bash
+
+
+
+
+docker exec -it 775c7c9ee1e1 /bin/bash
+
+docker cp  29df10f32d44:/etc/nginx/nginx.conf /d/dockerfiles/nginx1
+
+docker cp /dockerfiles/nginx1/conf.d 2ea923b6fdd2:/etc/nginx/
+
+搭建mysql 容器
+docker run -di --name bw_mysql -p 23001:3306 -e MYSQL_ROOT_PASSWORD=!QAZxsw2 mysql
+docker exec -it bw_mysql /bin/bash
+mysql -u root -p
+//8.0授权
+GRANT ALL ON *.* TO 'root'@'%';
+刷新权限
+flush privileges;
+修改加密规则
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'password' PASSWORD EXPIRE NEVER;
+
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+修改密码（这个可以不执行）
+ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '!QAZxsw2';
+flush privileges;
+数据库搭建完毕
+
+
+搭建redis 带密码
+docker run -d --name bw_redis -p 26001:6379 redis --requirepass "redis!QAZxsw2"
+redis搭建完毕
+
+搭建mogodb 带密码
+docker run -itd --name bw_mongo -p 27001:27017 mongo --auth
+docker exec -it bw_mongo mongo admin
+ db.createUser({ user:'admin',pwd:'QAZxsw',roles:[ { role:'userAdminAnyDatabase', db: 'admin'}]});
+db.auth('admin', 'QAZxsw')
+给bwlogs创建一个 单独的用户admin2
+use bwlogs
+db.createUser({user:"admin2",pwd:"QAZxsw",roles:[{role:"dbOwner",db:"bwlogs"}]})
+连接bwlogs的连接字符串     mongoconn=mongodb://admin2:QAZxsw@localhost:27001/bwlogs
+
+返回1  成功
+
+
+
+
+db.createUser(
+{
+　　user: "root",
+　　pwd: "root",
+　　roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+} )
+
+
+
+
+
+搭建mogodb完毕
+
+搭建contes
+docker run -it  -p 28001:8080  -v /f/dockerfiles/systemapicentos:/root/build -h systemapicentos --name systemapicentos centos /bin/bash
+docker run -it  -p 28002:8080  -v /f/dockerfiles/systemhtmlcentos:/root/build -h systemhtmlcentos --name systemhtmlcentos centos /bin/bash
+docker run -it  -p 28003:8080  -v /d/dockerfiles/imagerservercentos:/root/build -h imagerservercentos --name imagerservercentos centos /bin/bash
+搭建完成
+搭建 es
+https://www.cnblogs.com/jianxuanbing/p/9410800.html
+docker pull docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+docker run -d --name bw_es -p 29001:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.3.2
+
+
+
+
+
+
+
+
+搭建mycat
+1 新建2个mysql
+docker run --name mysqlmaster -p 23310:3306 -v /d/dockerfiles/mysqlmaster/conf:/etc/mysql/conf.d -v /d/dockerfiles/mysqlmaster/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root --privileged=true -d mysql
+
+docker run   --name mysqlslave  -p 23320:3306  -v /d/dockerfiles/mysqlslave/conf:/etc/mysql/conf.d -v /d/dockerfiles/mysqlslave/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=root  --privileged=true -d mysql
+
+change master to master_host='10.0.0.105',master_port=23310,master_user='lhl',master_password='root',master_log_file='master-bin.000003',master_log_pos=853;
+
+
+docker run --name mycat -v /d/dockerfiles/mycat/schema.xml:/usr/local/mycat/conf/schema.xml -v /d/dockerfiles/mycat/rule.xml:/usr/local/mycat/conf/rule.xml -v /d/dockerfiles/mycat/server.xml:/usr/local/mycat/conf/server.xml -v /d/dockerfiles/mycat/sequence_conf.properties:/usr/local/mycat/conf/sequence_conf.properties --privileged=true -p 8066:8066 -p 9066:9066 -e MYSQL_ROOT_PASSWORD=root  -d longhronshens/mycat-docker
+
+
+CREATE TABLE `tb_user`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '用户名',
+  `password` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '密码，加密存储',
+  `phone` varchar(20) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '注册手机号',
+  `email` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '注册邮箱',
+  `created` datetime(0) NOT NULL,
+  `updated` datetime(0) NOT NULL,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `username`(`username`) USING BTREE,
+  UNIQUE INDEX `phone`(`phone`) USING BTREE,
+  UNIQUE INDEX `email`(`email`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 54 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '用户表' ROW_FORMAT = Compact;
+————————————————
+版权声明：本文为CSDN博主「SophiaLeo」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
+原文链接：https://blog.csdn.net/Amor_Leo/article/details/85218405
+
+
+
+
+
+
+
+
+
+
+
+
+docker基本操作
+1 进入一个容器
+sudo docker exec -it imagerservercentos /bin/bash
+
+2.停用全部运行中的容器: PowerShell中运行
+docker stop $(docker ps -q)
+3.删除全部容器：
+docker rm $(docker ps -aq)
+
+列出所有的容器 ID
+docker ps -aq
+
+停止所有的容器
+docker stop $(docker ps -aq)
+
+删除所有的容器
+docker rm $(docker ps -aq)
+
+列出所有的镜像
+docker images -q
+
+删除所有的镜像
+docker rmi $(docker images -q)
+
+复制文件
+docker cp mycontainer:/opt/file.txt /opt/local/docker cp /opt/local/file.txt myco
+
+删除不用的镜像
+
+docker image prune --force --all
+
+
+docker image prune --force --all       # 仅在 docker 1.13的版本上适用，在ubuntu上不适用
+
+docker image prune --force --all
+
+
+
+删除所有停止的容器
+
+docker container prune
+
+批量全部启动
+docker start $(docker ps -aq)
